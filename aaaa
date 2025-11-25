@@ -1,0 +1,153 @@
+from game2dboard import Board
+
+EMPTY = None
+BLACK = "⚫"
+WHITE = "⚪"
+current = BLACK
+HINT = "x"
+total = 64
+DIRECTIONS = [
+    (-1, -1), (-1, 0), (-1, 1),
+    ( 0, -1),          ( 0, 1),
+    ( 1, -1), ( 1, 0), ( 1, 1),
+]
+
+
+def possible_moves(player): 
+    if player == BLACK:
+        opponent = WHITE 
+    else: 
+        opponent = BLACK
+    possible = []
+
+    for row in range(8):
+        for col in range(8):
+            if b[row][col] is not None: #si la casilla no esta ocupada, seguir
+                continue
+            
+            # Verificar si al lado de una celda vacia hay al menos una ficha del oponente
+            has_adjacent_opponent = False
+            for dr, dc in DIRECTIONS:
+                new_row, new_col = row + dr, col + dc
+                # Verificar que está dentro del tablero
+                if 0 <= new_row < 8 and 0 <= new_col < 8:
+                    if b[new_row][new_col] != opponent:
+                        continue
+
+                    # CAMBIO: seguir avanzando en esa dirección mientras haya fichas del oponente
+                    r, c = new_row + dr, new_col + dc
+                    while 0 <= r < 8 and 0 <= c < 8 and b[r][c] == opponent:
+                        r += dr
+                        c += dc
+
+                    # CAMBIO: verificar si después de una o más fichas del oponente hay una ficha del jugador
+                    if 0 <= r < 8 and 0 <= c < 8 and b[r][c] == player:
+                        has_adjacent_opponent = True
+                        break
+            
+            if has_adjacent_opponent:
+                possible.append((row, col))
+    
+    return possible
+
+
+
+def show_hints():
+    clear_hints()
+    moves = possible_moves(current)
+    for row, col in moves:
+        b[row][col] = HINT
+
+def clear_hints():
+    for row in range(8):
+        for col in range(8):
+            if b[row][col] == HINT:
+                b[row][col] = EMPTY
+
+def flip_color(b,row,col,current):
+    opponent = WHITE if current == BLACK else BLACK
+    to_flip = []
+    for dr, dc in DIRECTIONS:
+        r, c = row + dr, col + dc
+        line = []
+        if not (0 <= r < 8 and 0 <= c < 8) or b[r][c] != opponent:
+            continue
+        while 0 <= r < 8 and 0 <= c < 8 and b[r][c] == opponent:
+            line.append((r,c))
+            r += dr
+            c += dc
+        
+        if line and 0 <= r < 8 and 0 <= c < 8 and b[r][c] == current:
+            to_flip.extend(line)
+        
+    for r,c in to_flip:
+        b[r][c] = current
+    return to_flip
+    
+    
+    
+    print()
+
+def mouse_fn(btn, row, col):    
+    global current, total
+    
+    # Verificar que la casilla no este ocupada ni no sea uno de los possible moves
+    if b[row][col] != HINT:
+        if b[row][col] is not None:
+            b.title = "That tile is already taken!"
+        else:
+            b.title = "Invalid move! Click on one of the possible moves (x)."
+        return
+    
+    # Limpiar hints
+    clear_hints()
+    
+    # Colocar ficha
+    b[row][col] = current
+
+    # Flip the captured discs for this placement
+    flipped = flip_color(b, row, col, current)
+    if not flipped:
+        # Revert if something went wrong (shouldn't happen if HINTs are correct)
+        b[row][col] = EMPTY
+        show_hints()
+        return
+    
+    # Cambiar turno
+    if current == BLACK:
+        current = WHITE
+    else:
+        current = BLACK
+    
+    # Mostrar nuevos hints
+    show_hints()
+    
+    b.title = f"Othello! Turn: {'Black ⚫' if current == BLACK else 'White ⚪'}"
+
+#program execution starts here
+#first, we create the board and set the 4 initial chips
+b = Board(8,8)         
+b[3][3] = WHITE
+b[4][3] = BLACK
+b[3][4] = BLACK
+b[4][4] = WHITE
+
+b.title = "Othello!  Turn: Black ⚫"
+b.cell_size = 80       
+b.cell_color = "green"
+b.on_mouse_click = mouse_fn
+
+# Mostrar los hints iniciales
+show_hints()
+
+b.show() #waits for user input, once you click it runs mouse_fn
+
+"""porgram execution: 
+1)board, 4 chips, starts black's turn
+2)show hints function is called
+3)show hints calls remove hints if there were any previous hints from the before play
+and sets moves = to possible moves function and puts them on the board
+4)b.show waits for user input to call mouse_fn
+5) when you click a cell 
+
+"""
